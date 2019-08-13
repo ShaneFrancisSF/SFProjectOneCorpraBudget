@@ -1,27 +1,20 @@
-trigger TransactionTrigger on Transaction__c (after insert) {
-
-	Transaction__c t = Trigger.new[0];
-    
-     Budget__c b = [SELECT Id, Name, BudgetSpent__c FROM Budget__c WHERE Id =: t.Budget__c];
-    
-    b.BudgetSpent__c = b.BudgetSpent__c + t.Amount__c;
-    
-    update b;
-
-   /*List<Id> budgetIds = new List<Id>();
-   for (Transaction__c trns: Trigger.new) {
-   	budgetIds.add(trns.Budget__c);
-   }
-   
-   List<Budget__c> bgs = [SELECT Id, Name, BudgetSpent__c FROM Budget__c WHERE ID IN : budgetIds];
-   
-    
-  for (Transaction__c trns : Trigger.new) {
-      for(Budget__C b : bgs) {
-         if (trns.Budget__c == b.Id) {
-             b.BudgetSpent__c = b.BudgetSpent__c + trns.Amount__c;
-         }
-      }
-  } */
-    
+trigger TransactionTrigger on Transaction__c (after insert, after update, after delete) {
+    
+    if(Trigger.isAfter && Trigger.isInsert){
+        Transaction__c t = Trigger.new[0];
+        Budget__c b = [SELECT Id, Name, BudgetSpent__c FROM Budget__c WHERE Id =: t.Budget__c];
+        BudgetAccountCalculator.addTransactionToBudgetSpent(b, t);
+        update b;
+    } else if (Trigger.isAfter && Trigger.isUpdate){
+        Transaction__c u = Trigger.old[0];
+        Budget__c b = [SELECT Id, Name, BudgetSpent__c FROM Budget__c WHERE Id =: u.Budget__c];
+        BudgetAccountCalculator.updateTransactionInBudgetSpent(b, u);
+        update b;
+    } else if (Trigger.isAfter && Trigger.isDelete) {
+        Transaction__c d = Trigger.old[0];
+        Budget__c b = [SELECT Id, Name, BudgetSpent__c FROM Budget__c WHERE Id =: d.Budget__c];
+        BudgetAccountCalculator.deleteTransactionFromBudgetSpent(b, d);
+        update b;
+    }
+        
 }
